@@ -469,6 +469,7 @@ public class AIDomination extends AISubmissive {
 	
 	private attack3(boolean attack) {
 		List<Country> attackable = findAttackableTerritories(player, attack);
+		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
 		if (attack) {
 			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
 			Collections.sort(targetList, Collections.reverseOrder());
@@ -503,7 +504,6 @@ public class AIDomination extends AISubmissive {
 		//kill switch
 		attack2(boolean attack_2);
 
-		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
 
 		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
 		attack3(boolean attack_3);
