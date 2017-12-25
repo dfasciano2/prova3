@@ -494,7 +494,7 @@ public class AIDomination extends AISubmissive {
 			}
 	 }
 	 
-	 private attack3 {
+	 private attack3() {
 		 ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
 		 Collections.sort(targetList, Collections.reverseOrder());
 		 for (AttackTarget at : targetList) {
@@ -507,7 +507,7 @@ public class AIDomination extends AISubmissive {
 			}
 	 }
 	 
-	 boolean attack2() {
+	 private attack2() {
 		 boolean keepPlaying = false;
 			for (int i = 0; i < game.getPlayers().size(); i++) {
 				get_player();
@@ -515,25 +515,30 @@ public class AIDomination extends AISubmissive {
 			if (!keepPlaying) {
 				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
 				different_keeplaying();
-				}
+			}
 	 }
 	 
 	private String plan(boolean attack) {
+		
+		boolean attack_1=(attack && attackable.isEmpty());
+		boolean attack_2=(attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean())));
+		boolean attack_3=(attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean());
+		
 		List<Country> attackable = findAttackableTerritories(player, attack);
-		if (attack && attackable.isEmpty()) {
+		if (attack_1) {
 			return "endattack";
 		}
 		GameState gameState = getGameState(player, false);
 
 		//kill switch
-		if (attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()))) {
+		if (attack_2) {
 			attack2();
 		}
 
 		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
 
 		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
-		if (attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean()) {
+		if(attack_3)  {
 			attack3();
 		}
 
