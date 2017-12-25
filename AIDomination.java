@@ -753,19 +753,20 @@ public class AIDomination extends AISubmissive {
 			bestRoute = route;
 			target = at;
 	}
+	}
 		
 	private attack_target() {
 
+		boolean  target = (target != null && at.remaining < target.remaining);
+		boolean remaining =(at.remaining > 0);
+		
+		
 		AttackTarget at = attacks.get(i);
-		if (target != null && at.remaining < target.remaining) {
+		if (target  || remaining) {
 			break;
 		}
 		if (found) {
 			continue;
-		}
-		if (at.remaining > 0) {
-			target = null;
-			break;
 		}
 		if (continents.size() > 0 && at.targetCountry.getContinent() == continents.get(0).co) {
 			bestRoute = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
@@ -773,9 +774,8 @@ public class AIDomination extends AISubmissive {
 			found = true;
 		} else {
 			target_null();
-			}
 		}
-	
+	}
 	private String ensureRiskCard(List<Country> attackable, GameState gameState,
 								  Map<Country, AttackTarget> targets, boolean pressAttack, List<EliminationTarget> continents) {
 		if (this.type == AIDomination.PLAYER_AI_EASY) {
