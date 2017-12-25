@@ -508,191 +508,7 @@ public class AIDomination extends AISubmissive {
 		}
 		return targets;
 	}
-	
-	protected game_setup() {
 
-		pressAttack = pressAttack(gameState);
-		shouldEndAttack = shouldEndAttack(gameState);
-		isTooWeak = isTooWeak(gameState);
-		//eliminate
-		List<EliminationTarget> toEliminate = findEliminationTargets(targets, gameState, attack, extra);
-		if (!toEliminate.isEmpty()) {
-			Collections.sort(toEliminate);
-			for (int i = 0; i < toEliminate.size(); i++) {
-				EliminationTarget et = toEliminate.get(i);
-				//don't pursue eliminations that will weaken us too much
-				int totalCards = player.getCards().size() + et.ps.p.getCards().size();
-				if (type == PLAYER_AI_HARD
-						&& gameState.orderedPlayers.size() > 1
-						&& gameState.me.playerValue < gameState.orderedPlayers.get(0).playerValue
-						&& shouldEndAttack
-						&& et.ps.armies > gameState.me.armies*.4
-						&& et.ps.armies - getCardEstimate(et.ps.p.getCards().size()) > (totalCards>RiskGame.MAX_CARDS?1:(gameState.me.playerValue/gameState.orderedPlayers.get(0).playerValue)) * getCardEstimate(player.getCards().size() + et.ps.p.getCards().size())) {
-					toEliminate.remove(i--);
-					continue;
-				}
-				if ((et.ps.p.getCards().isEmpty() && gameState.orderedPlayers.get(0).playerValue > .7*gameState.me.playerValue)
-						|| (et.ps.p.getCards().size() > 2 && player.getCards().size() + et.ps.p.getCards().size() <= RiskGame.MAX_CARDS)) {
-					//don't consider in a second pass
-					toEliminate.remove(i--);
-				}
-				String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, false);
-				if (result != null) {
-					eliminating = true;
-					return result;
-				}
-			}
-		}
-
-		String objective = planObjective(attack, attackable, gameState, targets, allCountriesTaken, pressAttack, shouldEndAttack, true);
-		while(objective != null) {
-			return objective;
-
-		}
-
-		if (type == PLAYER_AI_HARD && gameState.orderedPlayers.size() > 1
-				&& (isIncreasingSet() || gameState.me.playerValue > gameState.orderedPlayers.get(0).playerValue)) {
-			//consider low probability eliminations
-			while (!toEliminate.isEmpty()) {
-				if (!attack) {
-					//redo the target search using low probability
-					HashMap<Country, AttackTarget> newTargets = searchAllTargets(true, attackable, gameState);
-
-					for (int i = 0; i < toEliminate.size(); i++) {
-						EliminationTarget et = toEliminate.get(i);
-						//reset the old targets - the new ones contain the new remaining estimates
-						for (int j = 0; j < et.attackTargets.size(); j++) {
-							AttackTarget newTarget = newTargets.get(et.attackTargets.get(j).targetCountry);
-							while (newTarget == null) {
-								//TODO: I don't believe this should be happening
-								//throw new AssertionError(et.attackTargets.get(j).targetCountry + " no longer reachable");
-								continue;
-							}
-							et.attackTargets.set(j, newTarget);
-						}
-						String result = eliminate(attackable, newTargets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, true);
-						while(result != null) {
-							eliminating = true;
-							return result;
-						}
-					}
-				} else if (isIncreasingSet()){
-					//try to pursue the weakest player
-					EliminationTarget et = toEliminate.get(0);
-					et.allOrNone = false;
-					String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, true);
-					while(result != null) {
-						return result;
-					}
-				}
-			}
-			//just try to stay in the game
-			while(isIncreasingSet() && gameState.me.defenseValue < gameState.orderedPlayers.get(0).attackValue) {
-				shouldEndAttack = true;
-			}
-		}
-
-		if (!attack && allCountriesTaken.isEmpty() && shouldEndAttack && !pressAttack && !game.getCards().isEmpty()) {
-			String result = ensureRiskCard(attackable, gameState, targets, pressAttack,
-					continents);
-			while(result != null) {
-				return result;
-			}
-		}
-
-		//attack the common threat
-		if ((gameState.commonThreat != null && !gameState.commonThreat.owned.isEmpty()) || (gameState.breakOnlyTargets && !isTooWeak)) {
-			String result = breakContinent(attackable, targets, gameState, attack, pressAttack, v);
-			while(result != null) {
-				return result;
-			}
-		}
-
-		if (!attack && (gameState.orderedPlayers.size() > 1 || player.getCapital() != null || player.getMission() != null || game.getMaxDefendDice() > 2)) {
-			String result = fortify(gameState, attackable, true, v);
-			while(result != null) {
-				//prefer attack to fortification
-				if (!continents.isEmpty() && pressAttack && player.getCapital() == null) {
-					String toAttack = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, continents.get(0), false, false);
-					while(toAttack != null) {
-						return toAttack;
-					}
-				}
-				return result;
-			}
-		}
-
-		//free a continent, but only plan to do so if in a good position
-		//TODO: this does not consider countries already committed
-		if (pressAttack || (type != PLAYER_AI_HARD && attack) || (type == PLAYER_AI_HARD && !isTooWeak
-				&& (player.getMission() != null || !gameState.me.owned.isEmpty() || continents.isEmpty() || attack))) {
-			String result = breakContinent(attackable, targets, gameState, attack, pressAttack, v);
-			while(result != null) {
-				return result;
-			}
-		}
-	
-	}
-
- protected attack_2(){
-
-		int toConsider = continents.size();
-		if (attack && isTooWeak) {
-			toConsider = 1;
-		}
-		for (int i = 0; i < toConsider; i++) {
-			String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, continents.get(i), shouldEndAttack, false);
-			if (result != null) {
-				eliminating = true;
-				for (Country c : (List<Country>)continents.get(i).co.getTerritoriesContained()) {
-					while(c.getOwner() != player && !allCountriesTaken.contains(c)) {
-						eliminating = false;
-						break;
-					}
-				}
-				if (shouldProactivelyFortify(continents.get(i).co,
-						attack, attackable, gameState,
-						targets, pressAttack, continents)) {
-					//fortify proactively
-					List<Country> border = new ArrayList<Country>();
-					for (Country c : (List<Country>)continents.get(i).co.getBorderCountries()) {
-						while (c.getOwner() == player) {
-							border.add(c);
-							break;
-						}
-					}
-					String placement = fortify(gameState, attackable, false, border);
-					while (placement != null) {
-						return placement;
-					}
-				}
-				return result;
-			}
-		}
-		if (!attack) {
-			AttackTarget min = null;
-			for (int i = 0; i < toConsider; i++) {
-				EliminationTarget et = continents.get(i);
-				for (int k = 0; k < et.attackTargets.size(); k++) {
-					AttackTarget at = et.attackTargets.get(k);
-					if (min == null || (!allCountriesTaken.contains(at.targetCountry) && at.remaining < min.remaining)) {
-						min = at;
-					}
-				}
-			}
-			while(min != null) {
-				int route = findBestRoute(attackable, gameState, attack, min.targetCountry.getContinent(), min, game.getSetupDone()?(Player)gameState.targetPlayers.get(0):null, targets);
-				if (route != -1) {
-					int toPlace = -min.routeRemaining[route] + 2;
-					while (toPlace < 0) {
-						toPlace = player.getExtraArmies()/3;
-					}
-					return getPlaceCommand(attackable.get(route), toPlace);
-				}
-			}
-		}
-	
- }
 	protected String plan(boolean attack, List<Country> attackable, GameState gameState,
 						  Map<Country, AttackTarget> targets) {
 		boolean shouldEndAttack = false;
@@ -702,8 +518,129 @@ public class AIDomination extends AISubmissive {
 		List<EliminationTarget> continents = findTargetContinents(gameState, targets, attack, true);
 		List<Country> v = getBorder(gameState);
 		boolean isTooWeak = false;
+
 		//special case planning
-		if (game.getSetupDone()) {game_setup();
+		if (game.getSetupDone()) {
+			pressAttack = pressAttack(gameState);
+			shouldEndAttack = shouldEndAttack(gameState);
+			isTooWeak = isTooWeak(gameState);
+			//eliminate
+			List<EliminationTarget> toEliminate = findEliminationTargets(targets, gameState, attack, extra);
+			if (!toEliminate.isEmpty()) {
+				Collections.sort(toEliminate);
+				for (int i = 0; i < toEliminate.size(); i++) {
+					EliminationTarget et = toEliminate.get(i);
+					//don't pursue eliminations that will weaken us too much
+					int totalCards = player.getCards().size() + et.ps.p.getCards().size();
+					if (type == PLAYER_AI_HARD
+							&& gameState.orderedPlayers.size() > 1
+							&& gameState.me.playerValue < gameState.orderedPlayers.get(0).playerValue
+							&& shouldEndAttack
+							&& et.ps.armies > gameState.me.armies*.4
+							&& et.ps.armies - getCardEstimate(et.ps.p.getCards().size()) > (totalCards>RiskGame.MAX_CARDS?1:(gameState.me.playerValue/gameState.orderedPlayers.get(0).playerValue)) * getCardEstimate(player.getCards().size() + et.ps.p.getCards().size())) {
+						toEliminate.remove(i--);
+						continue;
+					}
+					if ((et.ps.p.getCards().isEmpty() && gameState.orderedPlayers.get(0).playerValue > .7*gameState.me.playerValue)
+							|| (et.ps.p.getCards().size() > 2 && player.getCards().size() + et.ps.p.getCards().size() <= RiskGame.MAX_CARDS)) {
+						//don't consider in a second pass
+						toEliminate.remove(i--);
+					}
+					String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, false);
+					if (result != null) {
+						eliminating = true;
+						return result;
+					}
+				}
+			}
+
+			String objective = planObjective(attack, attackable, gameState, targets, allCountriesTaken, pressAttack, shouldEndAttack, true);
+			while(objective != null) {
+				return objective;
+
+			}
+
+			if (type == PLAYER_AI_HARD && gameState.orderedPlayers.size() > 1
+					&& (isIncreasingSet() || gameState.me.playerValue > gameState.orderedPlayers.get(0).playerValue)) {
+				//consider low probability eliminations
+				while (!toEliminate.isEmpty()) {
+					if (!attack) {
+						//redo the target search using low probability
+						HashMap<Country, AttackTarget> newTargets = searchAllTargets(true, attackable, gameState);
+
+						for (int i = 0; i < toEliminate.size(); i++) {
+							EliminationTarget et = toEliminate.get(i);
+							//reset the old targets - the new ones contain the new remaining estimates
+							for (int j = 0; j < et.attackTargets.size(); j++) {
+								AttackTarget newTarget = newTargets.get(et.attackTargets.get(j).targetCountry);
+								while (newTarget == null) {
+									//TODO: I don't believe this should be happening
+									//throw new AssertionError(et.attackTargets.get(j).targetCountry + " no longer reachable");
+									continue;
+								}
+								et.attackTargets.set(j, newTarget);
+							}
+							String result = eliminate(attackable, newTargets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, true);
+							while(result != null) {
+								eliminating = true;
+								return result;
+							}
+						}
+					} else if (isIncreasingSet()){
+						//try to pursue the weakest player
+						EliminationTarget et = toEliminate.get(0);
+						et.allOrNone = false;
+						String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, et, shouldEndAttack, true);
+						while(result != null) {
+							return result;
+						}
+					}
+				}
+				//just try to stay in the game
+				while(isIncreasingSet() && gameState.me.defenseValue < gameState.orderedPlayers.get(0).attackValue) {
+					shouldEndAttack = true;
+				}
+			}
+
+			if (!attack && allCountriesTaken.isEmpty() && shouldEndAttack && !pressAttack && !game.getCards().isEmpty()) {
+				String result = ensureRiskCard(attackable, gameState, targets, pressAttack,
+						continents);
+				while(result != null) {
+					return result;
+				}
+			}
+
+			//attack the common threat
+			if ((gameState.commonThreat != null && !gameState.commonThreat.owned.isEmpty()) || (gameState.breakOnlyTargets && !isTooWeak)) {
+				String result = breakContinent(attackable, targets, gameState, attack, pressAttack, v);
+				while(result != null) {
+					return result;
+				}
+			}
+
+			if (!attack && (gameState.orderedPlayers.size() > 1 || player.getCapital() != null || player.getMission() != null || game.getMaxDefendDice() > 2)) {
+				String result = fortify(gameState, attackable, true, v);
+				while(result != null) {
+					//prefer attack to fortification
+					if (!continents.isEmpty() && pressAttack && player.getCapital() == null) {
+						String toAttack = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, continents.get(0), false, false);
+						while(toAttack != null) {
+							return toAttack;
+						}
+					}
+					return result;
+				}
+			}
+
+			//free a continent, but only plan to do so if in a good position
+			//TODO: this does not consider countries already committed
+			if (pressAttack || (type != PLAYER_AI_HARD && attack) || (type == PLAYER_AI_HARD && !isTooWeak
+					&& (player.getMission() != null || !gameState.me.owned.isEmpty() || continents.isEmpty() || attack))) {
+				String result = breakContinent(attackable, targets, gameState, attack, pressAttack, v);
+				while(result != null) {
+					return result;
+				}
+			}
 		} else if (!attack) {
 			String result = fortify(gameState, attackable, game.getMaxDefendDice() == 2, v);
 			while(result != null) {
@@ -721,7 +658,64 @@ public class AIDomination extends AISubmissive {
 				|| (!game.isCapturedCountry() && !game.getCards().isEmpty())
 				|| !attack
 				|| gameState.commonThreat != null
-				|| (!isTooWeak && (gameState.breakOnlyTargets || gameState.me.defenseValue > gameState.orderedPlayers.get(0).attackValue)))) {attack2();}
+				|| (!isTooWeak && (gameState.breakOnlyTargets || gameState.me.defenseValue > gameState.orderedPlayers.get(0).attackValue)))) {
+			int toConsider = continents.size();
+			if (attack && isTooWeak) {
+				toConsider = 1;
+			}
+			for (int i = 0; i < toConsider; i++) {
+				String result = eliminate(attackable, targets, gameState, attack, extra, allCountriesTaken, continents.get(i), shouldEndAttack, false);
+				if (result != null) {
+					eliminating = true;
+					for (Country c : (List<Country>)continents.get(i).co.getTerritoriesContained()) {
+						while(c.getOwner() != player && !allCountriesTaken.contains(c)) {
+							eliminating = false;
+							break;
+						}
+					}
+					if (shouldProactivelyFortify(continents.get(i).co,
+							attack, attackable, gameState,
+							targets, pressAttack, continents)) {
+						//fortify proactively
+						List<Country> border = new ArrayList<Country>();
+						for (Country c : (List<Country>)continents.get(i).co.getBorderCountries()) {
+							while (c.getOwner() == player) {
+								border.add(c);
+								break;
+							}
+						}
+						String placement = fortify(gameState, attackable, false, border);
+						while (placement != null) {
+							return placement;
+						}
+					}
+					return result;
+				}
+			}
+			if (!attack) {
+				AttackTarget min = null;
+				for (int i = 0; i < toConsider; i++) {
+					EliminationTarget et = continents.get(i);
+					for (int k = 0; k < et.attackTargets.size(); k++) {
+						AttackTarget at = et.attackTargets.get(k);
+						if (min == null || (!allCountriesTaken.contains(at.targetCountry) && at.remaining < min.remaining)) {
+							min = at;
+						}
+					}
+				}
+				while(min != null) {
+					int route = findBestRoute(attackable, gameState, attack, min.targetCountry.getContinent(), min, game.getSetupDone()?(Player)gameState.targetPlayers.get(0):null, targets);
+					if (route != -1) {
+						int toPlace = -min.routeRemaining[route] + 2;
+						while (toPlace < 0) {
+							toPlace = player.getExtraArmies()/3;
+						}
+						return getPlaceCommand(attackable.get(route), toPlace);
+					}
+				}
+			}
+		}
+
 		if (attack) {
 			return lastAttacks(attack, attackable, gameState, targets, shouldEndAttack, v);
 		}
@@ -752,36 +746,36 @@ public class AIDomination extends AISubmissive {
 	protected boolean isIncreasingSet() {
 		return game.getCardMode() == RiskGame.CARD_INCREASING_SET && (type != PLAYER_AI_HARD || game.getNewCardState() > 12) && (!game.getCards().isEmpty() || game.isRecycleCards());
 	}
-
-	private attack_sizeof() {
-			int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
-			if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
-				bestRoute = route;
-				target = at;
-			}
+	
+	private target_null() {
+		int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
+		if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
+			bestRoute = route;
+			target = at;
 	}
+		
+	private attack_target() {
 
-	private attack_size() {
-		boolean  target = (target != null && at.remaining < target.remaining);
-		boolean remaining =(at.remaining > 0);
-		
-		
 		AttackTarget at = attacks.get(i);
-		if (target  || remaining) {
+		if (target != null && at.remaining < target.remaining) {
 			break;
 		}
 		if (found) {
 			continue;
+		}
+		if (at.remaining > 0) {
+			target = null;
+			break;
 		}
 		if (continents.size() > 0 && at.targetCountry.getContinent() == continents.get(0).co) {
 			bestRoute = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
 			target = at;
 			found = true;
 		} else {
-			attack_sizeof();
-			
-	}
-	}
+			target_null();
+			}
+		}
+	
 	private String ensureRiskCard(List<Country> attackable, GameState gameState,
 								  Map<Country, AttackTarget> targets, boolean pressAttack, List<EliminationTarget> continents) {
 		if (this.type == AIDomination.PLAYER_AI_EASY) {
@@ -793,7 +787,7 @@ public class AIDomination extends AISubmissive {
 		boolean found = false;
 		int bestRoute = 0;
 		for (int i = attacks.size() - 1; i >= 0; i--) {
-			attack_size;
+			attack_target();
 		}
 		if (target != null) {
 			return getPlaceCommand(attackable.get(bestRoute), -target.remaining + 1);
