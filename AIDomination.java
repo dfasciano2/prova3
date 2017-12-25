@@ -427,11 +427,8 @@ public class AIDomination extends AISubmissive {
 		}
 	
     }
-    
-	protected int scoreCountry(Country country) {
-		final int n = country.getIncomingNeighbours().size();
-		int countryScore = n + 6; //normalize so that 1 is the best score for an empty country
-		if (country.getArmies() > 0) {
+   protected country_score(){
+    	if (country.getArmies() > 0) {
 			countryScore += n;
 			countryScore -= country.getArmies();
 		}
@@ -441,6 +438,14 @@ public class AIDomination extends AISubmissive {
 		if (game.getSetupDone() && country.getCrossContinentNeighbours().size() == 1) {
 			countryScore -= 3;
 		}
+    }
+   
+	protected int scoreCountry(Country country) {
+		final int n = country.getIncomingNeighbours().size();
+		int countryScore = n + 6; //normalize so that 1 is the best score for an empty country
+		
+		country_score();
+		
 		int neighborBonus = 0;
 		int neighbors = 0;
 		//defense
