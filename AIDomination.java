@@ -476,6 +476,35 @@ public class AIDomination extends AISubmissive {
 	 * @param attack
 	 * @return
 	 */
+	private get_player(){
+
+			Player p = (Player)game.getPlayers().get(i);
+			if (p.getType() == Player.PLAYER_HUMAN && !p.getTerritoriesOwned().isEmpty()) {
+				keepPlaying = true;
+				break;
+			}
+		
+	 }
+	 
+	 private different_keeplaying() {
+		 for (Country c : (List<Country>)attackFrom.getNeighbours()) {
+				if (c.getOwner() != player) {
+					return "attack " + attackFrom.getColor() + " " + c.getColor();
+				}
+			}
+	 }
+	 
+	 private other_attack() {
+		 for (AttackTarget at : targetList) {
+				if (at.remaining < 1) {
+					break;
+				}
+				int route = findBestRoute(attackable, gameState, attack, null, at, gameState.targetPlayers.get(0), targets);
+				Country start = attackable.get(route);
+				return getAttack(targets, at, route, start);
+			}
+	 }
+	 
 	private String plan(boolean attack) {
 		List<Country> attackable = findAttackableTerritories(player, attack);
 		if (attack && attackable.isEmpty()) {
@@ -487,20 +516,12 @@ public class AIDomination extends AISubmissive {
 		if (attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()))) {
 			boolean keepPlaying = false;
 			for (int i = 0; i < game.getPlayers().size(); i++) {
-				Player p = (Player)game.getPlayers().get(i);
-				if (p.getType() == Player.PLAYER_HUMAN && !p.getTerritoriesOwned().isEmpty()) {
-					keepPlaying = true;
-					break;
-				}
+				get_player();
 			}
 			if (!keepPlaying) {
 				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
-				for (Country c : (List<Country>)attackFrom.getNeighbours()) {
-					if (c.getOwner() != player) {
-						return "attack " + attackFrom.getColor() + " " + c.getColor();
-					}
+				different_keeplaying();
 				}
-			}
 		}
 
 		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
@@ -509,14 +530,7 @@ public class AIDomination extends AISubmissive {
 		if (attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean()) {
 			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
 			Collections.sort(targetList, Collections.reverseOrder());
-			for (AttackTarget at : targetList) {
-				if (at.remaining < 1) {
-					break;
-				}
-				int route = findBestRoute(attackable, gameState, attack, null, at, gameState.targetPlayers.get(0), targets);
-				Country start = attackable.get(route);
-				return getAttack(targets, at, route, start);
-			}
+			other_attack();
 		}
 
 		return plan(attack, attackable, gameState, targets);
