@@ -753,6 +753,32 @@ public class AIDomination extends AISubmissive {
 		return game.getCardMode() == RiskGame.CARD_INCREASING_SET && (type != PLAYER_AI_HARD || game.getNewCardState() > 12) && (!game.getCards().isEmpty() || game.isRecycleCards());
 	}
 
+	private attack_size() {
+
+		AttackTarget at = attacks.get(i);
+		if (target != null && at.remaining < target.remaining) {
+			break;
+		}
+		if (found) {
+			continue;
+		}
+		if (at.remaining > 0) {
+			target = null;
+			break;
+		}
+		if (continents.size() > 0 && at.targetCountry.getContinent() == continents.get(0).co) {
+			bestRoute = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
+			target = at;
+			found = true;
+		} else {
+			int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
+			if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
+				bestRoute = route;
+				target = at;
+			}
+		}
+	
+	}
 	private String ensureRiskCard(List<Country> attackable, GameState gameState,
 								  Map<Country, AttackTarget> targets, boolean pressAttack, List<EliminationTarget> continents) {
 		if (this.type == AIDomination.PLAYER_AI_EASY) {
@@ -764,28 +790,7 @@ public class AIDomination extends AISubmissive {
 		boolean found = false;
 		int bestRoute = 0;
 		for (int i = attacks.size() - 1; i >= 0; i--) {
-			AttackTarget at = attacks.get(i);
-			if (target != null && at.remaining < target.remaining) {
-				break;
-			}
-			if (found) {
-				continue;
-			}
-			if (at.remaining > 0) {
-				target = null;
-				break;
-			}
-			if (continents.size() > 0 && at.targetCountry.getContinent() == continents.get(0).co) {
-				bestRoute = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
-				target = at;
-				found = true;
-			} else {
-				int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
-				if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
-					bestRoute = route;
-					target = at;
-				}
-			}
+			attack_size;
 		}
 		if (target != null) {
 			return getPlaceCommand(attackable.get(bestRoute), -target.remaining + 1);
