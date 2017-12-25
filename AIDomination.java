@@ -753,6 +753,14 @@ public class AIDomination extends AISubmissive {
 		return game.getCardMode() == RiskGame.CARD_INCREASING_SET && (type != PLAYER_AI_HARD || game.getNewCardState() > 12) && (!game.getCards().isEmpty() || game.isRecycleCards());
 	}
 
+	private attack_sizeof() {
+			int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
+			if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
+				bestRoute = route;
+				target = at;
+			}
+	}
+
 	private attack_size() {
 		boolean  target = (target != null && at.remaining < target.remaining);
 		boolean remaining =(at.remaining > 0);
@@ -769,13 +777,11 @@ public class AIDomination extends AISubmissive {
 			bestRoute = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);
 			target = at;
 			found = true;
-		} else if (target == null || gameState.targetPlayers.contains(at.targetCountry.getOwner()) || r.nextBoolean()) {
-				int route = findBestRoute(attackable, gameState, pressAttack, null, at, game.getSetupDone()?(Player) gameState.targetPlayers.get(0):null, targets);	
-				bestRoute = route;
-				target = at;
-			}
-		}
-	
+		} else {
+			attack_sizeof();
+			
+	}
+	}
 	private String ensureRiskCard(List<Country> attackable, GameState gameState,
 								  Map<Country, AttackTarget> targets, boolean pressAttack, List<EliminationTarget> continents) {
 		if (this.type == AIDomination.PLAYER_AI_EASY) {
