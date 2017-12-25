@@ -505,6 +505,17 @@ public class AIDomination extends AISubmissive {
 			}
 	 }
 	 
+	 boolean attack2() {
+		 boolean keepPlaying = false;
+			for (int i = 0; i < game.getPlayers().size(); i++) {
+				get_player();
+			}
+			if (!keepPlaying) {
+				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
+				different_keeplaying();
+				}
+	 }
+	 
 	private String plan(boolean attack) {
 		List<Country> attackable = findAttackableTerritories(player, attack);
 		if (attack && attackable.isEmpty()) {
@@ -514,14 +525,7 @@ public class AIDomination extends AISubmissive {
 
 		//kill switch
 		if (attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()))) {
-			boolean keepPlaying = false;
-			for (int i = 0; i < game.getPlayers().size(); i++) {
-				get_player();
-			}
-			if (!keepPlaying) {
-				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
-				different_keeplaying();
-				}
+			attack2();
 		}
 
 		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
