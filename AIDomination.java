@@ -444,9 +444,8 @@ public class AIDomination extends AISubmissive {
 		}
 		return countryScore;
 	}
-
-	private attack2 (boolean attack) {
-		if (attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()))) {
+	private attack2(boolean attack) {
+		if (attack) {
 		boolean keepPlaying = false;
 		for (int i = 0; i < game.getPlayers().size(); i++) {
 			Player p = (Player)game.getPlayers().get(i);
@@ -463,24 +462,23 @@ public class AIDomination extends AISubmissive {
 				}
 			}
 		}
-		}
+	
+	}
 	}
 	
 	private attack3(boolean attack) {
-		if (attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean()) {
-		ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
-		Collections.sort(targetList, Collections.reverseOrder());
-		for (AttackTarget at : targetList) {
-			if (at.remaining < 1) {
-				break;
+		if (attack) {
+			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
+			Collections.sort(targetList, Collections.reverseOrder());
+			for (AttackTarget at : targetList) {
+				if (at.remaining < 1) {
+					break;
+				}
+				int route = findBestRoute(attackable, gameState, attack, null, at, gameState.targetPlayers.get(0), targets);
+				Country start = attackable.get(route);
+				return getAttack(targets, at, route, start);
 			}
-			int route = findBestRoute(attackable, gameState, attack, null, at, gameState.targetPlayers.get(0), targets);
-			Country start = attackable.get(route);
-			return getAttack(targets, at, route, start);
 		}
-	
-	}
-		return plan(attack, attackable, gameState, targets);
 	}
 	/**
 	 * General planning method for both attack and placement
@@ -492,21 +490,24 @@ public class AIDomination extends AISubmissive {
 	 */
 	private String plan(boolean attack) {
 		List<Country> attackable = findAttackableTerritories(player, attack);
+		boolean attack_2=attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()));
+		boolean attack_3=attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean();
+		
 		if (attack && attackable.isEmpty()) {
 			return "endattack";
 		}
 		GameState gameState = getGameState(player, false);
 
 		//kill switch
-		
-			attack2(attack);
-	
+		attack2(boolean attack_2);
 
 		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
 
 		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
-		
-			attack3(attack);
+		attack3(boolean attack_3);
+
+		return plan(attack, attackable, gameState, targets);
+	}
 
 	private HashMap<Country, AttackTarget> searchAllTargets(Boolean attack, List<Country> attackable, GameState gameState) {
 		HashMap<Country, AttackTarget> targets = new HashMap<Country, AttackTarget>();
