@@ -420,7 +420,7 @@ public class AIDomination extends AISubmissive {
 	
     }
     
-    protected game!_setup(){
+    protected game_setup(){
 		countryScore -= Math.pow(neighbors, 2);
 		if (!game.getSetupDone()) {
 			countryScore = Math.max(1, countryScore);
@@ -457,7 +457,7 @@ public class AIDomination extends AISubmissive {
 		countryScore += neighborBonus/4 + neighborBonus%2;
 
 		if (!game.getSetupDone() || neighbors > 1) {
-			game!_setup();
+			game_setup();
 			
 		}
 		return countryScore;
