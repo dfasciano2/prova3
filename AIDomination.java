@@ -445,6 +445,7 @@ public class AIDomination extends AISubmissive {
 		return countryScore;
 	}
 	private attack2(boolean attack) {
+		List<Country> attackable = findAttackableTerritories(player, attack);
 		if (attack) {
 		boolean keepPlaying = false;
 		for (int i = 0; i < game.getPlayers().size(); i++) {
@@ -467,6 +468,7 @@ public class AIDomination extends AISubmissive {
 	}
 	
 	private attack3(boolean attack) {
+		List<Country> attackable = findAttackableTerritories(player, attack);
 		if (attack) {
 			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
 			Collections.sort(targetList, Collections.reverseOrder());
