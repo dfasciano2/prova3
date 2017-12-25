@@ -494,7 +494,9 @@ public class AIDomination extends AISubmissive {
 			}
 	 }
 	 
-	 private other_attack() {
+	 private attack3 {
+		 ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
+		 Collections.sort(targetList, Collections.reverseOrder());
 		 for (AttackTarget at : targetList) {
 				if (at.remaining < 1) {
 					break;
@@ -532,9 +534,7 @@ public class AIDomination extends AISubmissive {
 
 		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
 		if (attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean()) {
-			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
-			Collections.sort(targetList, Collections.reverseOrder());
-			other_attack();
+			attack3();
 		}
 
 		return plan(attack, attackable, gameState, targets);
