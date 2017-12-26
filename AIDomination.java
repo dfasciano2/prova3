@@ -1057,14 +1057,7 @@ public class AIDomination extends AISubmissive {
 		}
 	}
 	
-	private country_conditions() {
-		if (at.isEmpty() && filterNoAttacks) {
-			continue; //nothing to attack this turn
-		}
-		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
-		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
-			continue; //should build up, rather than attack
-		}
+	private ratio_conditions() {
 		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
 		int pow = 2;
 		if (!game.getSetupDone()) {
@@ -1087,10 +1080,6 @@ public class AIDomination extends AISubmissive {
 	
 	private list_result() {
 
-		Continent co = c[i];
-		if (gameState.owned[i] != null && (gameState.owned[i] == player || (gameState.commonThreat != null && gameState.commonThreat.p != gameState.owned[i]))) {
-			continue;
-		}
 		List<Country> ct = co.getTerritoriesContained();
 		List<AttackTarget> at = new ArrayList<AttackTarget>();
 		int territories = 0;
@@ -1102,8 +1091,14 @@ public class AIDomination extends AISubmissive {
 		for (int j = 0; j < ct.size(); j++) {
 			country_owns();
 		}
-		country_conditions();
-		
+		if (at.isEmpty() && filterNoAttacks) {
+			continue; //nothing to attack this turn
+		}
+		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
+		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
+			continue; //should build up, rather than attack
+		}
+		ratio_conditions();
 		Double key = Double.valueOf(-ratio);
 		int index = Collections.binarySearch(vals, key);
 		if (index < 0) {
@@ -1128,6 +1123,10 @@ public class AIDomination extends AISubmissive {
 		List<EliminationTarget> result = new ArrayList<EliminationTarget>();
 		HashSet<Country> seen = new HashSet<Country>();
 		for (int i = 0; i < c.length; i++) {
+			Continent co = c[i];
+			if (gameState.owned[i] != null && (gameState.owned[i] == player || (gameState.commonThreat != null && gameState.commonThreat.p != gameState.owned[i]))) {
+				continue;
+			}
 			list_result();
 		}
 		if (result.size() > targetContinents) {
