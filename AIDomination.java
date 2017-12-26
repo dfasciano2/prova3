@@ -1057,6 +1057,63 @@ public class AIDomination extends AISubmissive {
 		}
 	}
 	
+	private list_result() {
+
+		Continent co = c[i];
+		if (gameState.owned[i] != null && (gameState.owned[i] == player || (gameState.commonThreat != null && gameState.commonThreat.p != gameState.owned[i]))) {
+			continue;
+		}
+		List<Country> ct = co.getTerritoriesContained();
+		List<AttackTarget> at = new ArrayList<AttackTarget>();
+		int territories = 0;
+		int troops = 0;
+		int enemyTerritories = 0;
+		int enemyTroops = 0;
+		seen.clear();
+		//look at each country to see who owns it
+		for (int j = 0; j < ct.size(); j++) {
+			country_owns();
+		}
+		if (at.isEmpty() && filterNoAttacks) {
+			continue; //nothing to attack this turn
+		}
+		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
+		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
+			continue; //should build up, rather than attack
+		}
+		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
+		int pow = 2;
+		if (!game.getSetupDone()) {
+			pow = 3;
+		}
+		if (ratio < .5) {
+			if (gameState.commonThreat != null) {
+				continue;
+			}
+			//when we have a low ratio, further discourage using a divisor
+			ratio/=Math.pow(Math.max(1, enemyTroops-enemyTerritories), pow);
+		} else {
+			targetContinents++;
+		}
+		if (gameState.commonThreat == null) {
+			//lessen the affect of the value modifier as you control more continents
+			ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
+		}
+		Double key = Double.valueOf(-ratio);
+		int index = Collections.binarySearch(vals, key);
+		if (index < 0) {
+			index = -index-1;
+		}
+		vals.add(index, key);
+		EliminationTarget et = new EliminationTarget();
+		et.allOrNone = false;
+		et.attackTargets = at;
+		et.co = co;
+		et.ps = gameState.orderedPlayers.get(0);
+		result.add(index, et);
+	
+	}
+	
 	
 	private List<EliminationTarget> findTargetContinents(GameState gameState, Map<Country, AttackTarget> targets, boolean attack, boolean filterNoAttacks) {
 		Continent[] c = game.getContinents();
@@ -1066,58 +1123,7 @@ public class AIDomination extends AISubmissive {
 		List<EliminationTarget> result = new ArrayList<EliminationTarget>();
 		HashSet<Country> seen = new HashSet<Country>();
 		for (int i = 0; i < c.length; i++) {
-			Continent co = c[i];
-			if (gameState.owned[i] != null && (gameState.owned[i] == player || (gameState.commonThreat != null && gameState.commonThreat.p != gameState.owned[i]))) {
-				continue;
-			}
-			List<Country> ct = co.getTerritoriesContained();
-			List<AttackTarget> at = new ArrayList<AttackTarget>();
-			int territories = 0;
-			int troops = 0;
-			int enemyTerritories = 0;
-			int enemyTroops = 0;
-			seen.clear();
-			//look at each country to see who owns it
-			for (int j = 0; j < ct.size(); j++) {
-				country_owns();
-			}
-			if (at.isEmpty() && filterNoAttacks) {
-				continue; //nothing to attack this turn
-			}
-			int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
-			if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
-				continue; //should build up, rather than attack
-			}
-			double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
-			int pow = 2;
-			if (!game.getSetupDone()) {
-				pow = 3;
-			}
-			if (ratio < .5) {
-				if (gameState.commonThreat != null) {
-					continue;
-				}
-				//when we have a low ratio, further discourage using a divisor
-				ratio/=Math.pow(Math.max(1, enemyTroops-enemyTerritories), pow);
-			} else {
-				targetContinents++;
-			}
-			if (gameState.commonThreat == null) {
-				//lessen the affect of the value modifier as you control more continents
-				ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
-			}
-			Double key = Double.valueOf(-ratio);
-			int index = Collections.binarySearch(vals, key);
-			if (index < 0) {
-				index = -index-1;
-			}
-			vals.add(index, key);
-			EliminationTarget et = new EliminationTarget();
-			et.allOrNone = false;
-			et.attackTargets = at;
-			et.co = co;
-			et.ps = gameState.orderedPlayers.get(0);
-			result.add(index, et);
+			list_result();
 		}
 		if (result.size() > targetContinents) {
 			result = result.subList(0, targetContinents);
