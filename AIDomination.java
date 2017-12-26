@@ -1101,11 +1101,9 @@ public class AIDomination extends AISubmissive {
 		for (int j = 0; j < ct.size(); j++) {
 			country_owns();
 		}
-		if (at.isEmpty() && filterNoAttacks) {
-			continue; //nothing to attack this turn
-		}
+		
 		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
-		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
+		if (attack && game.isCapturedCountry() && (needed*.8 > troops)||at.isEmpty() && filterNoAttacks) {
 			continue; //should build up, rather than attack
 		}
 		
