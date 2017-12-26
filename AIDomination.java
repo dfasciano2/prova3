@@ -476,28 +476,40 @@ public class AIDomination extends AISubmissive {
 	 * @param attack
 	 * @return
 	 */
-	private get_player(){
+	private String plan(boolean attack) {
+		List<Country> attackable = findAttackableTerritories(player, attack);
+		if (attack && attackable.isEmpty()) {
+			return "endattack";
+		}
+		GameState gameState = getGameState(player, false);
 
-			Player p = (Player)game.getPlayers().get(i);
-			if (p.getType() == Player.PLAYER_HUMAN && !p.getTerritoriesOwned().isEmpty()) {
-				keepPlaying = true;
-				break;
-			}
-		
-	 }
-	 
-	 private different_keeplaying() {
-		 for (Country c : (List<Country>)attackFrom.getNeighbours()) {
-				if (c.getOwner() != player) {
-					return "attack " + attackFrom.getColor() + " " + c.getColor();
+		//kill switch
+		if (attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean()))) {
+			boolean keepPlaying = false;
+			for (int i = 0; i < game.getPlayers().size(); i++) {
+				Player p = (Player)game.getPlayers().get(i);
+				if (p.getType() == Player.PLAYER_HUMAN && !p.getTerritoriesOwned().isEmpty()) {
+					keepPlaying = true;
+					break;
 				}
 			}
-	 }
-	 
-	 private attack3() {
-		 ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
-		 Collections.sort(targetList, Collections.reverseOrder());
-		 for (AttackTarget at : targetList) {
+			if (!keepPlaying) {
+				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
+				for (Country c : (List<Country>)attackFrom.getNeighbours()) {
+					if (c.getOwner() != player) {
+						return "attack " + attackFrom.getColor() + " " + c.getColor();
+					}
+				}
+			}
+		}
+
+		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
+
+		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
+		if (attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean()) {
+			ArrayList<AttackTarget> targetList = new ArrayList<AIDomination.AttackTarget>(targets.values());
+			Collections.sort(targetList, Collections.reverseOrder());
+			for (AttackTarget at : targetList) {
 				if (at.remaining < 1) {
 					break;
 				}
@@ -505,41 +517,6 @@ public class AIDomination extends AISubmissive {
 				Country start = attackable.get(route);
 				return getAttack(targets, at, route, start);
 			}
-	 }
-	 
-	 private attack2() {
-		 boolean keepPlaying = false;
-			for (int i = 0; i < game.getPlayers().size(); i++) {
-				get_player();
-			}
-			if (!keepPlaying) {
-				Country attackFrom = attackable.get(r.nextInt(attackable.size()));
-				different_keeplaying();
-			}
-	 }
-	 
-	private String plan(boolean attack) {
-		
-		boolean attack_1=(attack && attackable.isEmpty());
-		boolean attack_2=(attack && (game.getCurrentPlayer().getStatistics().size() > MAX_AI_TURNS && (gameState.me.playerValue < gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).playerValue || r.nextBoolean())));
-		boolean attack_3=(attack && player.getType() == PLAYER_AI_EASY && game.getMaxDefendDice() == 2 && game.isCapturedCountry() && r.nextBoolean());
-		
-		List<Country> attackable = findAttackableTerritories(player, attack);
-		if (attack_1) {
-			return "endattack";
-		}
-		GameState gameState = getGameState(player, false);
-
-		//kill switch
-		if (attack_2) {
-			attack2();
-		}
-
-		HashMap<Country, AttackTarget> targets = searchAllTargets(attack, attackable, gameState);
-
-		//easy seems to be too hard based upon player feedback, so this dumbs down the play with a greedy attack
-		if(attack_3)  {
-			attack3();
 		}
 
 		return plan(attack, attackable, gameState, targets);
@@ -957,9 +934,7 @@ public class AIDomination extends AISubmissive {
 	/**
 	 * Quick check to see if we're significantly weaker than the strongest player
 	 */
-	protected boolean isTooWeak(GameState gameState) {
-		boolean result = (gameState.orderedPlayers.size() > 1 || player.getMission() != null || player.getCapital() != null) && gameState.me.defenseValue < gameState.orderedPlayers.get(0).attackValue / Math.max(2, gameState.orderedPlayers.size() - 1);
-		//early in the game the weakness assessment is too generous as a lot can happen in between turns
+	protected isTooweak_condition () {
 		if (!result && type == PLAYER_AI_HARD
 				&& gameState.orderedPlayers.size() > 2
 				&& (gameState.me.defenseValue < 1.2*gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).defenseValue
@@ -967,6 +942,11 @@ public class AIDomination extends AISubmissive {
 				&& shouldEndAttack(gameState)) {
 			return true;
 		}
+	}
+	protected boolean isTooWeak(GameState gameState) {
+		boolean result = (gameState.orderedPlayers.size() > 1 || player.getMission() != null || player.getCapital() != null) && gameState.me.defenseValue < gameState.orderedPlayers.get(0).attackValue / Math.max(2, gameState.orderedPlayers.size() - 1);
+		//early in the game the weakness assessment is too generous as a lot can happen in between turns
+		isTooweak_condition ();
 		return result;
 	}
 
