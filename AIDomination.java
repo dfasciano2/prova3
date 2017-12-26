@@ -1138,6 +1138,21 @@ public class AIDomination extends AISubmissive {
 	/**
 	 * Find the best route (the index in attackable) for the given target selection
 	 */
+	protected diff_conditions() {
+		if (diff < 0 && !path1.isEmpty()) {
+			HashMap<Country, AttackTarget> specificTargets = new HashMap<Country, AttackTarget>();
+			searchTargets(specificTargets, start, start.getArmies(), 0, 1, player.getExtraArmies(), attack, Collections.EMPTY_SET, path1, gameState);
+			int forwardMin = getMinRemaining(specificTargets, start.getArmies(), false, gameState);
+			if (forwardMin > -diff) {
+				bestRoute = i;
+				bestPath = path;
+			}
+		} else if (diff > 0 && path1.isEmpty() && start.getArmies() >= 3) {
+			bestRoute = i;
+			bestPath = path;
+		}
+	}
+	
 	protected check_attackline() {
 
 		HashSet<Country> path = getPath(selection, targets, i, start);
@@ -1151,19 +1166,19 @@ public class AIDomination extends AISubmissive {
 				iter.remove();
 			}
 		}
-		if (diff < 0 && !path1.isEmpty()) {
-			HashMap<Country, AttackTarget> specificTargets = new HashMap<Country, AttackTarget>();
-			searchTargets(specificTargets, start, start.getArmies(), 0, 1, player.getExtraArmies(), attack, Collections.EMPTY_SET, path1, gameState);
-			int forwardMin = getMinRemaining(specificTargets, start.getArmies(), false, gameState);
-			if (forwardMin > -diff) {
-				bestRoute = i;
-				bestPath = path;
-			}
-		} else if (diff > 0 && path1.isEmpty() && start.getArmies() >= 3) {
-			bestRoute = i;
-			bestPath = path;
-		}
+		diff_conditions();
+		
 		continue;
+	}
+	
+	protected adjusted_cost() {
+		if (adjustedCost1 < adjustedCost2) {
+			continue;
+		}
+		if (adjustedCost2 < adjustedCost1) {
+			bestRoute = i;
+			continue;
+		}
 	}
 	
    protected check_otherattack(){
@@ -1173,13 +1188,7 @@ public class AIDomination extends AISubmissive {
 			Country start1 = attackable.get(bestRoute);
 			int adjustedCost1 = start1.getArmies() - selection.routeRemaining[bestRoute];
 			int adjustedCost2 = start.getArmies() - selection.routeRemaining[i];
-			if (adjustedCost1 < adjustedCost2) {
-				continue;
-			}
-			if (adjustedCost2 < adjustedCost1) {
-				bestRoute = i;
-				continue;
-			}
+			adjusted_cost();
 		}
 
 		if ((diff < 0 && (!attack || selection.routeRemaining[bestRoute] < 0))
