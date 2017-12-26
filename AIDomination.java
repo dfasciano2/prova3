@@ -1058,6 +1058,12 @@ public class AIDomination extends AISubmissive {
 	}
 	
 	private different_ratio() {
+		
+		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
+		int pow = 2;
+		if (!game.getSetupDone()) {
+			pow = 3;
+		}
 		if (ratio < .5) {
 			if (gameState.commonThreat != null) {
 				continue;
@@ -1070,6 +1076,11 @@ public class AIDomination extends AISubmissive {
 		if (gameState.commonThreat == null) {
 			//lessen the affect of the value modifier as you control more continents
 			ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
+		}
+		Double key = Double.valueOf(-ratio);
+		int index = Collections.binarySearch(vals, key);
+		if (index < 0) {
+			index = -index-1;
 		}
 	}
 	
@@ -1097,18 +1108,10 @@ public class AIDomination extends AISubmissive {
 		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
 			continue; //should build up, rather than attack
 		}
-		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
-		int pow = 2;
-		if (!game.getSetupDone()) {
-			pow = 3;
-		}
+		
 		different_ratio();
 		
-		Double key = Double.valueOf(-ratio);
-		int index = Collections.binarySearch(vals, key);
-		if (index < 0) {
-			index = -index-1;
-		}
+		
 		vals.add(index, key);
 		EliminationTarget et = new EliminationTarget();
 		et.allOrNone = false;
