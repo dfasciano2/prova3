@@ -1182,8 +1182,12 @@ public class AIDomination extends AISubmissive {
 	}
 	
    protected check_otherattack(){
-
-		if (diff == 0 && attack) {
+	   boolean conditions= (diff < 0 && (!attack || selection.routeRemaining[bestRoute] < 0))
+				|| (diff == 0
+				&& ((selection.attackPath[i] != null && selection.attackPath[i].getOwner() == targetPlayer)
+				|| (targetPlayer == null || selection.attackPath[bestRoute].getOwner() != targetPlayer) && start.getContinent() == targetCo));
+		
+			if (diff == 0 && attack) {
 			//range planning during attack is probably too greedy, we try to counter that here
 			Country start1 = attackable.get(bestRoute);
 			int adjustedCost1 = start1.getArmies() - selection.routeRemaining[bestRoute];
@@ -1191,10 +1195,7 @@ public class AIDomination extends AISubmissive {
 			adjusted_cost();
 		}
 
-		if ((diff < 0 && (!attack || selection.routeRemaining[bestRoute] < 0))
-				|| (diff == 0
-				&& ((selection.attackPath[i] != null && selection.attackPath[i].getOwner() == targetPlayer)
-				|| (targetPlayer == null || selection.attackPath[bestRoute].getOwner() != targetPlayer) && start.getContinent() == targetCo))) {
+		if (conditions) {
 			bestRoute = i;
 		}
 	}
