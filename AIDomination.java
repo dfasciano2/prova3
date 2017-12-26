@@ -934,7 +934,7 @@ public class AIDomination extends AISubmissive {
 	/**
 	 * Quick check to see if we're significantly weaker than the strongest player
 	 */
-	protected isTooweak_condition () {
+	protected isTooWeak_condition () {
 		if (!result && type == PLAYER_AI_HARD
 				&& gameState.orderedPlayers.size() > 2
 				&& (gameState.me.defenseValue < 1.2*gameState.orderedPlayers.get(gameState.orderedPlayers.size() - 1).defenseValue
@@ -946,7 +946,7 @@ public class AIDomination extends AISubmissive {
 	protected boolean isTooWeak(GameState gameState) {
 		boolean result = (gameState.orderedPlayers.size() > 1 || player.getMission() != null || player.getCapital() != null) && gameState.me.defenseValue < gameState.orderedPlayers.get(0).attackValue / Math.max(2, gameState.orderedPlayers.size() - 1);
 		//early in the game the weakness assessment is too generous as a lot can happen in between turns
-		isTooweak_condition ();
+		isTooWeak_condition ();
 		return result;
 	}
 
@@ -999,6 +999,65 @@ public class AIDomination extends AISubmissive {
 	 * Find the continents that we're interested in competing for.
 	 * This is based upon how much we control the continent and weighted for its value.
 	 */
+	private country_different_player() {
+
+		AttackTarget t = targets.get(country);
+		if (t != null) {
+			at.add(t);
+		}
+		enemyTerritories++;
+		int toAttack = 0;
+		if (gameState.commonThreat == null || gameState.commonThreat.p != country.getOwner()) {
+			toAttack += country.getArmies();
+		} else {
+			//this will draw the attack toward continents mostly controlled by the common threat
+			toAttack += country.getArmies()/2;
+		}
+		if (toAttack >= game.getMaxDefendDice() && (t == null || t.remaining <= 0)) {
+			if (game.getMaxDefendDice() == 2) {
+				toAttack = 3*toAttack/2;
+			} else {
+				toAttack *= 2;
+			}
+		}
+		enemyTroops += toAttack;
+	
+	}
+	
+	private country_ccn() {
+
+		Country ccn = country.getCrossContinentNeighbours().get(k);
+		if (seen.add(ccn)) { //prevent counting the same neighbor multiple times
+			if (ccn.getOwner() == player) {
+				while(country.getOwner() != player) {
+					troops += ccn.getArmies()-1;
+					break;
+				}
+			} else if (gameState.commonThreat == null) {
+				enemyTroops += ccn.getArmies()*.8;
+			}
+		}
+	}
+	
+	
+	private country_owns() {
+
+		Country country = ct.get(j);
+		if (country.getOwner() == player) {
+			territories++;
+			troops += country.getArmies();
+		} else {
+			country_different_player();
+		}
+		//account for the immediate neighbours
+		if (!country.getCrossContinentNeighbours().isEmpty()) {
+			for (int k = 0; k < country.getCrossContinentNeighbours().size(); k++) {
+				country_ccn();
+			}
+		}
+	}
+	
+	
 	private List<EliminationTarget> findTargetContinents(GameState gameState, Map<Country, AttackTarget> targets, boolean attack, boolean filterNoAttacks) {
 		Continent[] c = game.getContinents();
 		int targetContinents = Math.max(1, c.length - gameState.orderedPlayers.size());
@@ -1020,48 +1079,7 @@ public class AIDomination extends AISubmissive {
 			seen.clear();
 			//look at each country to see who owns it
 			for (int j = 0; j < ct.size(); j++) {
-				Country country = ct.get(j);
-				if (country.getOwner() == player) {
-					territories++;
-					troops += country.getArmies();
-				} else {
-					AttackTarget t = targets.get(country);
-					if (t != null) {
-						at.add(t);
-					}
-					enemyTerritories++;
-					int toAttack = 0;
-					if (gameState.commonThreat == null || gameState.commonThreat.p != country.getOwner()) {
-						toAttack += country.getArmies();
-					} else {
-						//this will draw the attack toward continents mostly controlled by the common threat
-						toAttack += country.getArmies()/2;
-					}
-					if (toAttack >= game.getMaxDefendDice() && (t == null || t.remaining <= 0)) {
-						if (game.getMaxDefendDice() == 2) {
-							toAttack = 3*toAttack/2;
-						} else {
-							toAttack *= 2;
-						}
-					}
-					enemyTroops += toAttack;
-				}
-				//account for the immediate neighbours
-				if (!country.getCrossContinentNeighbours().isEmpty()) {
-					for (int k = 0; k < country.getCrossContinentNeighbours().size(); k++) {
-						Country ccn = country.getCrossContinentNeighbours().get(k);
-						if (seen.add(ccn)) { //prevent counting the same neighbor multiple times
-							if (ccn.getOwner() == player) {
-								while(country.getOwner() != player) {
-									troops += ccn.getArmies()-1;
-									break;
-								}
-							} else if (gameState.commonThreat == null) {
-								enemyTroops += ccn.getArmies()*.8;
-							}
-						}
-					}
-				}
+				country_owns();
 			}
 			if (at.isEmpty() && filterNoAttacks) {
 				continue; //nothing to attack this turn
