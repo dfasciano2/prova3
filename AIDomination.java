@@ -1057,6 +1057,22 @@ public class AIDomination extends AISubmissive {
 		}
 	}
 	
+	private different_ratio() {
+		if (ratio < .5) {
+			if (gameState.commonThreat != null) {
+				continue;
+			}
+			//when we have a low ratio, further discourage using a divisor
+			ratio/=Math.pow(Math.max(1, enemyTroops-enemyTerritories), pow);
+		} else {
+			targetContinents++;
+		}
+		if (gameState.commonThreat == null) {
+			//lessen the affect of the value modifier as you control more continents
+			ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
+		}
+	}
+	
 	private list_result() {
 
 		Continent co = c[i];
@@ -1074,31 +1090,18 @@ public class AIDomination extends AISubmissive {
 		for (int j = 0; j < ct.size(); j++) {
 			country_owns();
 		}
-		if (at.isEmpty() && filterNoAttacks) {
+		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
+		if (at.isEmpty() && filterNoAttacks || (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
 			continue; //nothing to attack this turn
 		}
-		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
-		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
-			continue; //should build up, rather than attack
-		}
+
 		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
 		int pow = 2;
 		if (!game.getSetupDone()) {
 			pow = 3;
 		}
-		if (ratio < .5) {
-			if (gameState.commonThreat != null) {
-				continue;
-			}
-			//when we have a low ratio, further discourage using a divisor
-			ratio/=Math.pow(Math.max(1, enemyTroops-enemyTerritories), pow);
-		} else {
-			targetContinents++;
-		}
-		if (gameState.commonThreat == null) {
-			//lessen the affect of the value modifier as you control more continents
-			ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
-		}
+		different_ratio();
+		
 		Double key = Double.valueOf(-ratio);
 		int index = Collections.binarySearch(vals, key);
 		if (index < 0) {
