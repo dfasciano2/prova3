@@ -1057,8 +1057,14 @@ public class AIDomination extends AISubmissive {
 		}
 	}
 	
-	private different_ratio() {
-		
+	private country_conditions() {
+		if (at.isEmpty() && filterNoAttacks) {
+			continue; //nothing to attack this turn
+		}
+		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
+		if (attack && game.isCapturedCountry() && (needed*.8 > troops)) {
+			continue; //should build up, rather than attack
+		}
 		double ratio = Math.max(1, territories + 2d*troops + player.getExtraArmies()/(game.getSetupDone()?2:3))/(enemyTerritories + 2*enemyTroops);
 		int pow = 2;
 		if (!game.getSetupDone()) {
@@ -1076,11 +1082,6 @@ public class AIDomination extends AISubmissive {
 		if (gameState.commonThreat == null) {
 			//lessen the affect of the value modifier as you control more continents
 			ratio *= Math.pow(getContinentValue(co), 1d/(gameState.me.owned.size() + 1));
-		}
-		Double key = Double.valueOf(-ratio);
-		int index = Collections.binarySearch(vals, key);
-		if (index < 0) {
-			index = -index-1;
 		}
 	}
 	
@@ -1101,15 +1102,13 @@ public class AIDomination extends AISubmissive {
 		for (int j = 0; j < ct.size(); j++) {
 			country_owns();
 		}
+		country_conditions();
 		
-		int needed = enemyTroops + enemyTerritories + territories - troops + (attack?game.getMaxDefendDice()*co.getBorderCountries().size():0);
-		if (attack && game.isCapturedCountry() && (needed*.8 > troops)||at.isEmpty() && filterNoAttacks) {
-			continue; //should build up, rather than attack
+		Double key = Double.valueOf(-ratio);
+		int index = Collections.binarySearch(vals, key);
+		if (index < 0) {
+			index = -index-1;
 		}
-		
-		different_ratio();
-		
-		
 		vals.add(index, key);
 		EliminationTarget et = new EliminationTarget();
 		et.allOrNone = false;
